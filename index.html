@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>製品・ロール重量計算ツール</title>
+  <style>
+    :root {
+      --primary-color: #0056b3;
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --border-color: #cccccc;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 12px;
+      padding-bottom: 270px;
+      color: #333;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .header-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 1.1rem;
+      margin: 0;
+      color: var(--primary-color);
+    }
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      border: none;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .reset-btn { background-color: #6c757d; color: white; }
+    .param-btn { background-color: #17a2b8; color: white; }
+    .btn:active { opacity: 0.8; }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      font-size: 0.95rem;
+      margin-top: 0;
+      margin-bottom: 10px;
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 4px;
+      color: var(--primary-color);
+    }
+    .mode-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      background: #e9ecef;
+      padding: 6px;
+      border-radius: 6px;
+    }
+    .mode-selector label {
+      flex: 1;
+      text-align: center;
+      padding: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+      background: #fff;
+      border: 1px solid #ced4da;
+    }
+    .mode-selector input[type="radio"] {
+      display: none;
+    }
+    .mode-selector label.active {
+      background: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color);
+    }
+
+    .form-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: bold;
+      flex: 1;
+    }
+    .form-group input, .form-group select {
+      width: 55%;
+      padding: 7px;
+      font-size: 0.9rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .layer-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .layer-row label {
+      font-size: 0.85rem;
+      font-weight: bold;
+      width: 50px;
+    }
+    .layer-row select {
+      flex: 2;
+      padding: 7px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+    }
+    .layer-row input {
+      flex: 1;
+      padding: 7px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      width: 60px;
+    }
+    .unit {
+      font-size: 0.8rem;
+      color: #666;
+    }
+    
+    .param-card {
+      display: none;
+      background: #e9ecef;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .param-table th, .param-table td {
+      border-bottom: 1px solid #dee2e6;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    .param-table th { background-color: #d6d8db; }
+
+    .result-card-fixed {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #eef6ff;
+      border-top: 2px solid var(--primary-color);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+      padding: 10px 16px;
+      z-index: 1000;
+    }
+    .result-card-fixed .container-inner {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .toggle-subtotal-btn {
+      background: none;
+      border: none;
+      color: var(--primary-color);
+      font-size: 0.8rem;
+      text-decoration: underline;
+      padding: 0;
+      margin-bottom: 6px;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      text-align: right;
+    }
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+    }
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      border-bottom: 1px dashed #cbdbe8;
+      padding-bottom: 2px;
+    }
+    .result-val {
+      font-weight: bold;
+      font-size: 1.0rem;
+      color: #000;
+    }
+    .highlight {
+      color: #d9534f;
+      font-size: 1.1rem;
+    }
+    
+    .subtotal-panel {
+      display: none;
+      background: #ffffff;
+      border: 1px solid #cbdbe8;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+    }
+    .subtotal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+    }
+    .subtotal-item {
+      display: flex;
+      justify-content: space-between;
+      color: #555;
+    }
+    .subtotal-val {
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-area">
+    <h1>重量計算ツール</h1>
+    <div class="btn-group">
+      <button class="btn param-btn" id="toggleParamBtn">比重パラメータ</button>
+      <button class="btn reset-btn" id="resetBtn">リセット</button>
+    </div>
+  </div>
+
+  <!-- 計算モード選択 -->
+  <div class="mode-selector">
+    <label id="lbl_mode_bag" class="active">
+      <input type="radio" name="calc_mode" value="bag" checked> 袋・枚数計算
+    </label>
+    <label id="lbl_mode_roll">
+      <input type="radio" name="calc_mode" value="roll"> 原反・紙管巻計算
+    </label>
+  </div>
+
+  <!-- 比重・定数パラメータ表示エリア -->
+  <div class="param-card" id="paramCard">
+    <h2 style="font-size:0.9rem; margin-top:0; color:#495057;">内部設定パラメータ（比重・目付定数）</h2>
+    <div style="font-weight:bold; font-size:0.8rem; margin-bottom:4px; color:#0056b3;">■ 原反の比重 (g/cm³)</div>
+    <table class="param-table" style="margin-bottom: 8px;">
+      <thead><tr><th>原反名称</th><th>比重</th></tr></thead>
+      <tbody>
+        <tr><td>NY</td><td>1.15</td></tr>
+        <tr><td>LLDPE</td><td>0.93</td></tr>
+        <tr><td>PET / AL蒸着PET / 透明蒸着PET</td><td>1.40</td></tr>
+        <tr><td>AL (アルミニウム)</td><td>2.71</td></tr>
+        <tr><td>PE (押出)</td><td>0.90</td></tr>
+        <tr><td>OPP / CPP</td><td>0.91</td></tr>
+        <tr><td>AL蒸着CPP</td><td>0.90</td></tr>
+      </tbody>
+    </table>
+    <div style="font-weight:bold; font-size:0.8rem; margin-bottom:4px; color:#0056b3;">■ オプション定数</div>
+    <table class="param-table">
+      <thead><tr><th>項目</th><th>条件</th><th>定数</th></tr></thead>
+      <tbody>
+        <tr><td>紙管仕様</td><td>あり の場合</td><td>厚み 7mm / 1.4 g/mm</td></tr>
+        <tr><td>チャック重量</td><td>あり の場合</td><td>0.00405 g / mm</td></tr>
+        <tr><td>インキ目付</td><td>印刷あり</td><td>3.0 g / m²</td></tr>
+        <tr><td rowspan="2">接着剤目付</td><td>エーテル系</td><td>2.3 g / m² / 層</td></tr>
+        <tr><td>エステル系</td><td>3.2 g / m² / 層</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 1. 寸法 -->
+  <div class="card">
+    <h2 id="dim_title">1. 基本寸法 (mm)</h2>
+    <div class="form-group">
+      <label for="width" id="lbl_width">横 (幅)</label>
+      <input type="number" id="width" value="0" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label for="height" id="lbl_height">縦</label>
+      <input type="number" id="height" value="0" inputmode="decimal">
+    </div>
+    <div class="form-group" id="group_gusset">
+      <label for="gusset">底マチ</label>
+      <input type="number" id="gusset" value="0" inputmode="decimal">
+    </div>
+  </div>
+
+  <!-- 2. 原反構成 -->
+  <div class="card">
+    <h2>2. フィルム構成</h2>
+    <div id="layers"></div>
+  </div>
+
+  <!-- 3. オプション -->
+  <div class="card">
+    <h2>3. オプション / 出荷条件</h2>
+    <div class="form-group" id="group_core" style="display:none;">
+      <label for="core_option">紙管</label>
+      <select id="core_option">
+        <option value="none" selected>なし</option>
+        <option value="exist">あり (7mm厚/1.4g/mm)</option>
+      </select>
+    </div>
+    <div class="form-group" id="group_zipper">
+      <label for="zipper">チャック</label>
+      <select id="zipper">
+        <option value="none">なし</option>
+        <option value="exist">あり</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="ink">インキ</label>
+      <select id="ink">
+        <option value="print" selected>印刷あり</option>
+        <option value="none">ムジ</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="adhesive">接着層</label>
+      <select id="adhesive">
+        <option value="ether">エーテル</option>
+        <option value="ester">エステル</option>
+        <option value="extrusion">押出ラミ(PE)</option>
+      </select>
+    </div>
+    <div class="form-group" id="group_quantity">
+      <label for="quantity">入り数 (枚/箱)</label>
+      <input type="number" id="quantity" value="0" inputmode="numeric">
+    </div>
+  </div>
+</div>
+
+<!-- 固定計算結果 -->
+<div class="result-card-fixed">
+  <div class="container-inner">
+    <button class="toggle-subtotal-btn" id="toggleSubtotalBtn">▼ 各パーツの小計（内訳）を表示</button>
+    
+    <!-- 内訳小計パネル -->
+    <div class="subtotal-panel" id="subtotalPanel">
+      <div class="subtotal-grid">
+        <div class="subtotal-item"><span>原反①:</span> <span class="subtotal-val"><span id="sub_layer_1">0.00</span> <span id="unit_sub1">g</span></span></div>
+        <div class="subtotal-item"><span>原反②:</span> <span class="subtotal-val"><span id="sub_layer_2">0.00</span> <span id="unit_sub2">g</span></span></div>
+        <div class="subtotal-item"><span>原反③:</span> <span class="subtotal-val"><span id="sub_layer_3">0.00</span> <span id="unit_sub3">g</span></span></div>
+        <div class="subtotal-item"><span>原反④:</span> <span class="subtotal-val"><span id="sub_layer_4">0.00</span> <span id="unit_sub4">g</span></span></div>
+        <div class="subtotal-item"><span>インキ:</span> <span class="subtotal-val"><span id="sub_ink">0.00</span> <span id="unit_sub_ink">g</span></span></div>
+        <div class="subtotal-item"><span>接着剤:</span> <span class="subtotal-val"><span id="sub_adhesive">0.00</span> <span id="unit_sub_adh">g</span></span></div>
+        <div class="subtotal-item" id="sub_zipper_item"><span>チャック:</span> <span class="subtotal-val"><span id="sub_zipper">0.00</span> g</span></div>
+        <div class="subtotal-item" id="sub_core_item" style="display:none;"><span>紙管:</span> <span class="subtotal-val"><span id="sub_core">0.00</span> kg</span></div>
+      </div>
+    </div>
+
+    <!-- メイン計算結果 -->
+    <div class="result-grid">
+      <div class="result-item">
+        <span>総厚:</span>
+        <span class="result-val"><span id="total_thickness">0</span> <span class="unit">μm</span></span>
+      </div>
+      <div class="result-item">
+        <span>単位面積:</span>
+        <span class="result-val"><span id="unit_weight">0.0</span> <span class="unit">g/m²</span></span>
+      </div>
+      <div class="result-item" id="res_item_main">
+        <span id="lbl_res_main">1枚あたり:</span>
+        <span class="result-val"><span id="single_weight">0.0</span> <span class="unit" id="unit_res_main">g</span></span>
+      </div>
+      <div class="result-item">
+        <span id="lbl_res_total">1箱あたり:</span>
+        <span class="result-val highlight"><span id="box_weight">0.00</span> <span class="unit">kg</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DENSITY = {
+    "---": 0, "NY": 1.15, "LLDPE": 0.93, "PET": 1.4,
+    "AL蒸着PET": 1.4, "透明蒸着PET": 1.4, "AL": 2.71,
+    "PE(押出)": 0.9, "OPP": 0.91, "CPP": 0.91, "AL蒸着CPP": 0.9
+  };
+
+  const ZIPPER_WEIGHT = { "none": 0, "exist": 0.00405 };
+  const INK_WEIGHT = { "print": 3.0, "none": 0 };
+  const ADHESIVE_WEIGHT = { "ether": 2.3, "ester": 3.2, "extrusion": 0 };
+  const CORE_UNIT_WEIGHT = 1.4; // g / mm
+
+  const layersContainer = document.getElementById('layers');
+  for (let i = 1; i <= 4; i++) {
+    const row = document.createElement('div');
+    row.className = 'layer-row';
+    let selectHtml = `<label>原反${i}</label><select id="material_${i}">`;
+    for (let mat in DENSITY) {
+      selectHtml += `<option value="${mat}">${mat}</option>`;
+    }
+    selectHtml += `</select><input type="number" id="thick_${i}" value="0" placeholder="μm" inputmode="decimal"><span class="unit">μm</span>`;
+    row.innerHTML = selectHtml;
+    layersContainer.appendChild(row);
+  }
+
+  const inputIds = [
+    'width', 'height', 'gusset', 'quantity', 'core_option', 'zipper', 'ink', 'adhesive',
+    'material_1', 'thick_1', 'material_2', 'thick_2',
+    'material_3', 'thick_3', 'material_4', 'thick_4'
+  ];
+
+  function saveData() {
+    const data = {};
+    inputIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) data[id] = el.value;
+    });
+    const mode = document.querySelector('input[name="calc_mode"]:checked').value;
+    data['calc_mode'] = mode;
+    localStorage.setItem('weight_calc_saved_data', JSON.stringify(data));
+  }
+
+  function loadData() {
+    const saved = localStorage.getItem('weight_calc_saved_data');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        inputIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && data[id] !== undefined) el.value = data[id];
+        });
+        if (data['calc_mode']) {
+          const radio = document.querySelector(`input[name="calc_mode"][value="${data['calc_mode']}"]`);
+          if (radio) radio.checked = true;
+        }
+      } catch (e) {
+        console.error("Failed to load saved data", e);
+      }
+    } else {
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById(`material_${i}`).value = "---";
+        document.getElementById(`thick_${i}`).value = 0;
+      }
+    }
+    updateModeUI();
+  }
+
+  function updateModeUI() {
+    const mode = document.querySelector('input[name="calc_mode"]:checked').value;
+    const isRoll = (mode === 'roll');
+
+    document.getElementById('lbl_mode_bag').classList.toggle('active', !isRoll);
+    document.getElementById('lbl_mode_roll').classList.toggle('active', isRoll);
+
+    document.getElementById('dim_title').innerText = isRoll ? "1. 基本寸法 (巾/長さ)" : "1. 基本寸法 (mm)";
+    document.getElementById('lbl_width').innerText = isRoll ? "横 (巾 mm)" : "横";
+    document.getElementById('lbl_height').innerText = isRoll ? "縦 (巻き長さ m)" : "縦";
+    
+    document.getElementById('group_gusset').style.display = isRoll ? 'none' : 'flex';
+    document.getElementById('group_zipper').style.display = isRoll ? 'none' : 'flex';
+    document.getElementById('group_quantity').style.display = isRoll ? 'none' : 'flex';
+    document.getElementById('group_core').style.display = isRoll ? 'flex' : 'none';
+
+    document.getElementById('sub_zipper_item').style.display = isRoll ? 'none' : 'flex';
+    document.getElementById('sub_core_item').style.display = isRoll ? 'flex' : 'none';
+
+    document.getElementById('lbl_res_main').innerText = isRoll ? "フィルム単体:" : "1枚あたり:";
+    document.getElementById('unit_res_main').innerText = isRoll ? "kg" : "g";
+    document.getElementById('lbl_res_total').innerText = isRoll ? "総重量 (紙管込):" : "1箱あたり:";
+
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById(`unit_sub${i}`).innerText = isRoll ? 'kg' : 'g';
+    }
+    document.getElementById('unit_sub_ink').innerText = isRoll ? 'kg' : 'g';
+    document.getElementById('unit_sub_adh').innerText = isRoll ? 'kg' : 'g';
+  }
+
+  // モード変更イベント
+  document.querySelectorAll('input[name="calc_mode"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      updateModeUI();
+      calculate();
+    });
+  });
+
+  // UIトグル
+  document.getElementById('toggleParamBtn').addEventListener('click', () => {
+    const card = document.getElementById('paramCard');
+    card.style.display = card.style.display === 'block' ? 'none' : 'block';
+  });
+
+  const toggleBtn = document.getElementById('toggleSubtotalBtn');
+  const subtotalPanel = document.getElementById('subtotalPanel');
+  toggleBtn.addEventListener('click', () => {
+    if (subtotalPanel.style.display === 'block') {
+      subtotalPanel.style.display = 'none';
+      toggleBtn.innerText = '▼ 各パーツの小計（内訳）を表示';
+    } else {
+      subtotalPanel.style.display = 'block';
+      toggleBtn.innerText = '▲ 各パーツの小計（内訳）を隠す';
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (confirm("入力データをリセットしてブランクにしますか？")) {
+      localStorage.removeItem('weight_calc_saved_data');
+      document.getElementById('width').value = 0;
+      document.getElementById('height').value = 0;
+      document.getElementById('gusset').value = 0;
+      document.getElementById('quantity').value = 0;
+      document.getElementById('core_option').value = "none";
+      document.getElementById('zipper').value = "none";
+      document.getElementById('ink').value = "print";
+      document.getElementById('adhesive').value = "ether";
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById(`material_${i}`).value = "---";
+        document.getElementById(`thick_${i}`).value = 0;
+      }
+      calculate();
+    }
+  });
+
+  function calculate() {
+    const mode = document.querySelector('input[name="calc_mode"]:checked').value;
+    const isRoll = (mode === 'roll');
+
+    const W = parseFloat(document.getElementById('width').value) || 0; // 横: mm
+    const H = parseFloat(document.getElementById('height').value) || 0; // 縦: 袋ならmm, ロールならm
+    const M = isRoll ? 0 : (parseFloat(document.getElementById('gusset').value) || 0); // 底マチ
+    const qty = parseFloat(document.getElementById('quantity').value) || 0;
+
+    // 紙管重量計算 (「あり」の場合のみ加算: 横巾 mm * 1.4 g/mm / 1000 = kg)
+    const coreOpt = document.getElementById('core_option').value;
+    const coreW = (isRoll && coreOpt === 'exist') ? (W * CORE_UNIT_WEIGHT) / 1000 : 0;
+
+    let area_m2 = 0;
+    if (isRoll) {
+      area_m2 = (W / 1000) * H;
+    } else {
+      area_m2 = (W * (H + M)) / 1000000;
+    }
+
+    let totalThick = 0;
+    let totalFilmWeight = 0;
+    let activeLayers = 0;
+
+    for (let i = 1; i <= 4; i++) {
+      const mat = document.getElementById(`material_${i}`).value;
+      const thick = parseFloat(document.getElementById(`thick_${i}`).value) || 0;
+      const density = DENSITY[mat] || 0;
+      let layerWeight = 0;
+
+      if (mat !== "---" && thick > 0) {
+        activeLayers++;
+        totalThick += thick;
+        if (isRoll) {
+          layerWeight = Math.round(area_m2 * (thick / 1000) * density * 100) / 100;
+        } else {
+          layerWeight = Math.round((W / 10) * ((H + M) / 10) * (thick / 10000) * density * 100) / 100;
+        }
+        totalFilmWeight += layerWeight;
+      }
+      document.getElementById(`sub_layer_${i}`).innerText = layerWeight.toFixed(2);
+    }
+
+    // チャック小計
+    const zipperType = document.getElementById('zipper').value;
+    const zipperWeight = isRoll ? 0 : Math.round(W * ZIPPER_WEIGHT[zipperType] * 100) / 100;
+    document.getElementById('sub_zipper').innerText = zipperWeight.toFixed(2);
+
+    // インキ小計
+    const inkType = document.getElementById('ink').value;
+    let inkWeight = area_m2 * INK_WEIGHT[inkType];
+    if (isRoll) inkWeight = inkWeight / 1000;
+    inkWeight = Math.round(inkWeight * 100) / 100;
+    document.getElementById('sub_ink').innerText = inkWeight.toFixed(2);
+
+    // 接着層小計
+    const adhesiveType = document.getElementById('adhesive').value;
+    const numAdhesiveLayers = Math.max(0, activeLayers - 1);
+    let adhesiveWeight = area_m2 * ADHESIVE_WEIGHT[adhesiveType] * numAdhesiveLayers;
+    if (isRoll) adhesiveWeight = adhesiveWeight / 1000;
+    adhesiveWeight = Math.round(adhesiveWeight * 100) / 100;
+    document.getElementById('sub_adhesive').innerText = adhesiveWeight.toFixed(2);
+
+    // 紙管表示 (kg)
+    document.getElementById('sub_core').innerText = coreW.toFixed(2);
+
+    // メイン結果出力
+    document.getElementById('total_thickness').innerText = totalThick;
+
+    if (isRoll) {
+      // 単位面積重量 g/m²
+      const unitWeightG = (totalThick > 0) ? Math.round((totalFilmWeight + inkWeight + adhesiveWeight) / (area_m2 || 1) * 1000 * 10) / 10 : 0;
+      document.getElementById('unit_weight').innerText = unitWeightG.toFixed(1);
+
+      // フィルム単体重量 (kg)
+      const filmNetWeightKg = Math.round((totalFilmWeight + inkWeight + adhesiveWeight) * 100) / 100;
+      document.getElementById('single_weight').innerText = filmNetWeightKg.toFixed(2);
+
+      // 総重量 (紙管込 kg)
+      const totalRollWeightKg = Math.round((filmNetWeightKg + coreW) * 100) / 100;
+      document.getElementById('box_weight').innerText = totalRollWeightKg.toFixed(2);
+
+    } else {
+      // 単位面積重量 (g)
+      const unitWeight = Math.round((totalFilmWeight + inkWeight + adhesiveWeight) * 10) / 10;
+      document.getElementById('unit_weight').innerText = unitWeight.toFixed(1);
+
+      // 1枚あたり重量 (g)
+      const singleWeight = Math.round(((unitWeight * 2) + zipperWeight) * 10) / 10;
+      document.getElementById('single_weight').innerText = singleWeight.toFixed(1);
+
+      // 1箱あたり重量 (kg)
+      const boxWeight = (singleWeight * qty) / 1000;
+      document.getElementById('box_weight').innerText = boxWeight.toFixed(2);
+    }
+
+    saveData();
+  }
+
+  document.querySelectorAll('input, select').forEach(element => {
+    element.addEventListener('change', calculate);
+    element.addEventListener('input', calculate);
+  });
+
+  loadData();
+  calculate();
+</script>
+
+</body>
+</html>
